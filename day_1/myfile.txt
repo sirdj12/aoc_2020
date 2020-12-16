@@ -1,0 +1,7 @@
+The number of lines in the file is: 6
+onetwoHowdy1721 1721 
+1721 979 
+1721 366 
+1721 299 
+The numbers are: 1721 and 299 and their product is 514579
+HI
