@@ -4,32 +4,34 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <regex>
 using namespace std;
 /*
 This script should read in a file of "passports."  Each passport 
 is a group of lines with key:value pairs.  Passports are separated by blank lines.
 To be valid, each passwort must have the fields byr, iyr, eyr, hgt, hcl, ecl, pid, and cid.
-But we should tread cid as optional for now.  
+For part 2 (this cript), each field's value must be in a specific range.
+But we should treat cid as optional for now.  
 We want to count how many passports in the file are valid.
 */
 
 /*
-Plan 1 - see if we can find which lines are blank
+Plan Pt 1 - see if we can find which lines are blank
     yes! Using line.empty() to check if it's empty
 
-Plan 2 - loop through file and count which lines are empty.
-        - add these numbers into a *Vector*!! which is new to me
+Plan pt 2 - loop through file and count which lines are empty.
+        - add these numbers (indicies) into a *Vector*!! which is new to me
         - loop through the number of passports (length of vector)
-            and then loop through each chunk, line by line
+            and then loop through each chunk (passport), line by line
         - for each chunk, make a vector with 8 zeros - one place for 
             each field.
-        - on each line, use "find" to see if it has each field.
-            each time we find the field, aput a 1 in the proper place in the vector
+        - on each line, use a regex to see if it has each field with a proper value.
+            each time we find the field with a correct value, put a 1 in the proper place in the vector.
         - at the end of the chunk, check if the vector has all 1s (except for 
             the cid field).
         - If the vector has all the fields, add 1 to a counter, counting how many
-            passports pass
-        - And we should be done!! :) at least with this plan.
+            passports are valid.
+        - And we should be done!! :)
 */
 
 ifstream input_file;
@@ -67,15 +69,12 @@ string get_line(int max_lines, int line_number){
     }
 }
 
-
-
-
 int main() {
     //opening the input file
 
-
-    input_file.open("test_input.txt");
-    //input_file.open("input.txt");
+    //input_file.open("test_input2.txt");
+    //input_file.open("test_input.txt");
+    input_file.open("input.txt");
 
     //find how to tell if a line is blank
     string line;
@@ -87,7 +86,7 @@ int main() {
 
         if (line.empty()){
             //cout << num << endl;
-            blanks_idxs.emplace_back(num);
+            blanks_idxs.emplace_back(num); // keeping track of blank lines
         }
     }
     //cout << endl;
@@ -107,7 +106,7 @@ int main() {
         // so 1 to blanks_idxs[0]-1, 
         // and then blanks_idxs[0]+1 to blanks_idxs[1]-1
         // and then blanks_idxs[1]+1 to blanks_idxs[2]-1, etc....
-        // so follow a partern and have special handling at the end?
+        // so follow a pattern and have special handling at the end?
 
         int start_n;
         int end_n;
@@ -124,89 +123,45 @@ int main() {
         }
 
         int n_lines_in_passport = 0;
-        
-        // now we loop through the passports
+
+        // now we loop through the lines in the passport
         for (int j=start_n; j<= end_n; j++){
             ++n_lines_in_passport;
             string passport_line = get_line(num, j);
 
-            // Now we search through the passports for the fields
-            if (passport_line.find("byr") != string::npos){
-                have_fields[0] = 1;
-            } if (passport_line.find("iyr") != string::npos){
-                have_fields[1] = 1;
-            } if (passport_line.find("eyr") != string::npos){
-                have_fields[2] = 1;
-            } if (passport_line.find("hgt") != string::npos){
-                have_fields[3] = 1;
-            } if (passport_line.find("hcl") != string::npos){
-                have_fields[4] = 1;
-            } if (passport_line.find("ecl") != string::npos){
-                have_fields[5] = 1;
-            } if (passport_line.find("pid") != string::npos){
-                have_fields[6] = 1;
-            } if (passport_line.find("cid") != string::npos){
-                have_fields[7] = 1;
+            //define our regexes to match, in an array of strings
+            string regexes[8] = {
+                "byr:(19[2-9][0-9]|200[0-2])( |$)",
+                "iyr:20(1[0-9]|20)( |$)",
+                "eyr:20(2[0-9]|30)( |$)",
+                "hgt:(1([5-8][0-9]|9[0-3])cm|(59|6[0-9]|7[0-6])in)( |$)",
+                "hcl:#[0-9a-f]{6,6}( |$)",
+                "ecl:(amb|blu|brn|gry|grn|hzl|oth)( |$)",
+                "pid:[0-9]{9,9}( |$)",
+                "cid:"
+            };
+            // Now we loop through the regexes to see if they match
+            for (int k=0; k<7; k++){
+                regex rgx (regexes[k]); //defining our regex
+                smatch match; // We're not really going to use this
+                if (regex_search(passport_line, match, rgx)){
+                    have_fields[k] = 1;
+                    //cout << "Passport " << i+1 << " has valid field " << regexes[k].substr(0,3) << endl;
+                }
             }
         }
-        //cout << n_lines_in_passport << " n_lines_in_passport" << endl;
-        // Now we're printing the vectors
-        // for (auto i: have_fields)
-        //     cout << i << ' ';
-        // cout << endl;
-
-        //find product of all fields to find if they're all present
-        bool has_7 = false;
+        //cout << endl;
         int has_7_prod = 1;
-        for (int l=0; l < 7; l++){
+        for (int l=0; l<7; l++){
             has_7_prod *= have_fields[l];
         }
-        //cout << endl;
-        // Now check if the passport is valid
-        if ((has_7_prod == 1) && ((have_fields[7] == 1) || (have_fields[7] == 0))){
+        if(has_7_prod == 1){
             ++num_good_passports;
         }
     }
         
-
-
-
-        // int line_we_at = 0;
-        // input_file.clear();
-        // input_file.seekg(0);
-        // int placeholder_n = 0;
-        // while(getline(input_file, line)){
-        //     ++line_we_at;
-        //     //special handling for beginning
-        //     if (i==0){
-        //         if (line_we_at <= (blanks_idxs[0]-1)){
-        //             //Now we *finally* check the lines in the passports to see
-        //             // if they have the fields
-        //             ++placeholder_n;
-        //             //placeholder for now
-        //         }
-        //         //special handling for the last one
-        //     } else if (i == (num_passports-1)){
-        //         if (line_we_at > blanks_idxs.back()){
-        //             // behavior at the end
-        //             ++placeholder_n;
-        //         }
-        //     } else {
-        //         //behavior if we're in the middle
-        //         if 
-        //     }
-
-        //}
-
-
-    cout << num_good_passports << " num_good_passports" << endl;   
-    
-    
-    
-    // cout << endl;
-    // for(int i=0; i<blanks_idxs.size();i++){
-    //     cout << blanks_idxs.at(i) << ' ';
-    // }
+    cout << num_good_passports << " number of good passports" << endl;   
+        
     cout << endl;
     //closing the file, now that we are done
     input_file.close();
